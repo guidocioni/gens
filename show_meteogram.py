@@ -12,7 +12,7 @@ from matplotlib.dates import  DateFormatter
 
 diri='/scratch/local1/m300382/gens/grib/'
 diri_images='/scratch/local1/m300382/gens/'
-cities = ["Frankfurt am Main"]
+cities = ["Milano", "Roma", "Palermo"]
 
 t_2m=[]
 t_850hpa=[]
