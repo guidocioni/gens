@@ -14,7 +14,7 @@ plt.switch_backend('agg')
 
 diri='/scratch/local1/m300382/gens/grib/'
 diri_images='/scratch/local1/m300382/gens/'
-cities = ["Milano","Roma","Palermo","Hamburg","Pisa","Storrs","Wien"]
+cities = ["Milano","Roma","Palermo","Hamburg","Pisa","Storrs"]
 
 
 n_pert=[]
