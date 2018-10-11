@@ -82,51 +82,62 @@ for city_to_plot in cities:
     loc = geolocator.geocode(city_to_plot)
     ilat=np.argmin(abs(lat-loc.latitude))
     ilon=np.argmin(abs(lon-loc.longitude))
+    
+    time=pd.to_datetime(dtime)
+    pos = np.array((time-time[0]) / pd.Timedelta('1 hour')).astype("int")
 
     fig = plt.figure(1, figsize=(9,10))
     ax1=plt.subplot2grid((nrows,ncols), (0,0))
     ax1.set_title("GEFS meteogram for "+city_to_plot+" | Run "+time_var.units[12:24])
-    bplot=ax1.boxplot(t_2m_point[city_to_plot],patch_artist=True,showfliers=False)
+    
+    bplot=ax1.boxplot(t_2m_point[city_to_plot], patch_artist=True,
+                      showfliers=False, positions=pos, widths=3)
     for box in bplot['boxes']:
         box.set(color='LightBlue')
         box.set(facecolor='LightBlue')
 
-    xaxis=np.arange(1,np.shape(dtime)[0]+1,1)
-    ax1.plot(xaxis, np.mean(t_2m_point[city_to_plot], axis=0), linewidth=1,color='red')
+    ax1.plot(pos, np.mean(t_2m_point[city_to_plot], axis=0), 'r-', linewidth=1)
     ax1.set_ylabel("2m Temp. [C]",fontsize=8)
     ax1.yaxis.grid(True)
+    ax1.xaxis.grid(True, color='gray', linewidth=0.2)
     ax1.tick_params(axis='y', which='major', labelsize=8)
     ax1.tick_params(axis='x', which='both', bottom=False)
 
     ax2=plt.subplot2grid((nrows,ncols), (1,0))
-    bplot_rain=ax2.boxplot(tot_prec_point[city_to_plot],patch_artist=True,showfliers=False)
+    bplot_rain=ax2.boxplot(tot_prec_point[city_to_plot], patch_artist=True,
+                      showfliers=False, positions=pos, widths=3)
     for box in bplot_rain['boxes']:
         box.set(color='LightBlue')
         box.set(facecolor='LightBlue')
-    ax2.plot(xaxis, np.mean(tot_prec_point[city_to_plot], axis=0), linewidth=1,color='red')
+        
+    ax2.plot(pos, np.mean(tot_prec_point[city_to_plot], axis=0), 'r-', linewidth=1)
     ax2.set_ylim(bottom=0)
     ax2b = ax2.twinx()
-    ax2b.plot(xaxis, np.mean(snow_point[city_to_plot]*100, axis=0), '*', linewidth=1,color='purple')
+    ax2b.plot(pos, np.mean(snow_point[city_to_plot]*100, axis=0), '*',color='purple')
     ax2b.set_ylabel("Snow probability",fontsize=8)
     ax2b.set_ylim(10, 100)
     ax2.yaxis.grid(True)
     ax2.set_ylabel("Precipitation [mm]",fontsize=8)
+    ax2.xaxis.grid(True, color='gray', linewidth=0.2)
     ax2.tick_params(axis='y', which='major', labelsize=8)
     ax2b.tick_params(axis='y', which='major', labelsize=8)
 
     ax3=plt.subplot2grid((nrows,ncols), (2,0))
-    bplot_wind=ax3.boxplot(wind_speed_10m_point[city_to_plot],patch_artist=True,showfliers=False)
+    bplot_wind=ax3.boxplot(wind_speed_10m_point[city_to_plot], patch_artist=True,
+                      showfliers=False, positions=pos, widths=3)
     for box in bplot_wind['boxes']:
         box.set(color='LightBlue')
         box.set(facecolor='LightBlue')
-    ax3.plot(xaxis, np.mean(wind_speed_10m_point[city_to_plot], axis=0), linewidth=1,color='red')
+    ax3.plot(pos, np.mean(wind_speed_10m_point[city_to_plot], axis=0), 'r-', linewidth=1)
 
     ax3.yaxis.grid(True)
     ax3.set_ylabel("Wind speed [km/h]",fontsize=8)
     ax3.tick_params(axis='y', which='major', labelsize=8)
     ax3.set_ylim(bottom=0)
+    ax3.xaxis.grid(True, color='gray', linewidth=0.2)
+
     ax4=plt.subplot2grid((nrows,ncols), (3,0))
-    ax4.plot_date(dtime, t_850hpa_point[city_to_plot][:,:].T, '-',linewidth=0.8)
+    ax4.plot_date(time, t_850hpa_point[city_to_plot][:,:].T, '-',linewidth=0.8)
     ax4.set_xlim(dtime[0],dtime[-1])
     ax4.set_ylabel("850 hPa Temp. [C]",fontsize=8)
     ax4.tick_params(axis='y', which='major', labelsize=8)
@@ -139,6 +150,6 @@ for city_to_plot in cities:
 
     fig.subplots_adjust(hspace=0.1)
     fig.autofmt_xdate()
-    plt.savefig(diri_images+"meteogram_"+city_to_plot, dpi=150)
-    # plt.show()
+    plt.savefig(diri_images+"meteogram_"+city_to_plot, dpi=150, bbox_inches='tight')
+#     plt.show()
     plt.clf()

@@ -78,5 +78,4 @@ ${cdo} -f nc copy -mergetime $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00"
 export QT_QPA_PLATFORM=offscreen
 ${python} /home/mpim/m300382/gens/plot_meteogram.py 
 
-for f in ${IMGDIR}*.png; do convert -trim +repage ${f} ${f}; done
 ncftpput -R -v altervista gens ${IMGDIR}meteogram_*
