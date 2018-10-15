@@ -9,6 +9,7 @@ import seaborn as sns
 import pandas as pd
 import matplotlib.dates as mdates
 from matplotlib.dates import  DateFormatter
+import xarray as xr
 
 plt.switch_backend('agg')
 
@@ -16,46 +17,26 @@ diri='/scratch/local1/m300382/gens/grib/'
 diri_images='/scratch/local1/m300382/gens/'
 cities = ["Milano","Roma","Palermo","Hamburg","Pisa","Storrs"]
 
-
 n_pert=[]
 
-first = True 
-for fname in glob(diri+"*.nc"):
-    nc=Dataset(fname)
-    if first == True:
-        # Initialize the variables to be filled
-        dims = np.shape(nc.variables['tp'])  # (64, 361, 720)
-        t_2m=np.empty(shape=(0,dims[0],dims[1],dims[2]), dtype='float32')
-        t_850hpa=np.empty(shape=(0,dims[0],dims[1],dims[2]), dtype='float32')
-        tot_prec=np.empty(shape=(0,dims[0],dims[1],dims[2]), dtype='float32')
-        snow=np.empty(shape=(0,dims[0],dims[1],dims[2]), dtype='float32')
-        wind_speed_10m=np.empty(shape=(0,dims[0],dims[1],dims[2]), dtype='float32')
-	time_var = nc.variables['time']
+fileslist=sorted(glob(diri+"*.nc"))
+datasets = [xr.open_dataset(files) for files in fileslist]
+# Merging should take care automatically of solving every conflict in the dimensions
+merged = xr.concat(datasets, 'ens_member')
 
-    first=False
-    
-    # Use only files with the same time dimension. Note that this not exactly true as it assumes
-    # that the dimesions read from the first file are correct.
-    # At least this won't produce an error in case a file has different time steps.
-    if len(nc.dimensions['time']) == dims[0]:
-        t_2m=np.append(t_2m, [nc.variables['2t'][:,0,:,:]-273.15], axis=0)
-        t_850hpa=np.append(t_850hpa, [nc.variables['t'][:,0,:,:]-273.15], axis=0)
-        tot_prec=np.append(tot_prec, [nc.variables['tp'][:]], axis=0)
-        snow=np.append(snow, [nc.variables['csnow'][:]], axis=0)
-        wind_speed_10m=np.append(wind_speed_10m, [(nc.variables['10u'][:,0,:,:]**2+nc.variables['10v'][:,0,:,:]**2)**(0.5)], axis=0)
+# Need to find a way to do this slicing using dimension names...
+t_2m=merged['2t'][:,:,0,:,:]-273.15
+t_850hpa=merged['t'][:,:,0,:,:]-273.15
+tot_prec=merged['tp'][:]
+snow=merged['csnow'][:]
+wind_speed_10m=(merged['10u'][:,:,0,:,:]**2+merged['10v'][:,:,0,:,:]**2)**(0.5)
 
-        if (fname[fname.find(".nc")-2:fname.find(".nc")]) =="00": #this is the control run
-            n_pert.append(0)
-        else:
-            n_pert.append(nc.variables['2t'].realization)
-    
-
-n_pert=np.array(n_pert)
+n_pert=merged['ens_member'].values
 
 wind_speed_10m=3.6*wind_speed_10m
-lon=np.where(nc.variables['lon'][:] >=180,nc.variables['lon'][:]-360, nc.variables['lon'][:] )
-lat=nc.variables['lat'][:]
-dtime = netCDF4.num2date(time_var[:],time_var.units)
+lon=np.where(merged['lon'][:] >=180,merged['lon'][:]-360, merged['lon'][:] )
+lat=merged['lat'].values
+dtime = merged['time'].values
 
 t_2m_point={}
 t_850hpa_point={}
@@ -88,9 +69,9 @@ for city_to_plot in cities:
 
     fig = plt.figure(1, figsize=(9,10))
     ax1=plt.subplot2grid((nrows,ncols), (0,0))
-    ax1.set_title("GEFS meteogram for "+city_to_plot+" | Run "+time_var.units[12:24])
+    ax1.set_title("GEFS meteogram for "+city_to_plot+" | Run "+fileslist[0][fileslist[0].find('_2')+1:fileslist[0].find('_00')])
     
-    bplot=ax1.boxplot(t_2m_point[city_to_plot], patch_artist=True,
+    bplot=ax1.boxplot(t_2m_point[city_to_plot].T, patch_artist=True,
                       showfliers=False, positions=pos, widths=3)
     for box in bplot['boxes']:
         box.set(color='LightBlue')
@@ -104,7 +85,7 @@ for city_to_plot in cities:
     ax1.tick_params(axis='x', which='both', bottom=False)
 
     ax2=plt.subplot2grid((nrows,ncols), (1,0))
-    bplot_rain=ax2.boxplot(tot_prec_point[city_to_plot], patch_artist=True,
+    bplot_rain=ax2.boxplot(tot_prec_point[city_to_plot].T, patch_artist=True,
                       showfliers=False, positions=pos, widths=3)
     for box in bplot_rain['boxes']:
         box.set(color='LightBlue')
@@ -123,7 +104,7 @@ for city_to_plot in cities:
     ax2b.tick_params(axis='y', which='major', labelsize=8)
 
     ax3=plt.subplot2grid((nrows,ncols), (2,0))
-    bplot_wind=ax3.boxplot(wind_speed_10m_point[city_to_plot], patch_artist=True,
+    bplot_wind=ax3.boxplot(wind_speed_10m_point[city_to_plot].T, patch_artist=True,
                       showfliers=False, positions=pos, widths=3)
     for box in bplot_wind['boxes']:
         box.set(color='LightBlue')
@@ -150,6 +131,6 @@ for city_to_plot in cities:
 
     fig.subplots_adjust(hspace=0.1)
     fig.autofmt_xdate()
-    plt.savefig(diri_images+"meteogram_"+city_to_plot, dpi=150, bbox_inches='tight')
+    plt.savefig(diri_images+"meteogram_"+city_to_plot, dpi=100, bbox_inches='tight')
 #     plt.show()
     plt.clf()

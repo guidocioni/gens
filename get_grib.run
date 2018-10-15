@@ -3,7 +3,7 @@
 GRIBDIR=/scratch/local1/m300382/gens/grib
 IMGDIR=/scratch/local1/m300382/gens/
 perl=/usr/bin/perl
-python=/sw/jessie-x64/python/python-2.7-ve6-gccsys/bin/python
+python=/home/mpim/m300382/.conda/envs/my_env/bin/python
 cdo=/sw/jessie-x64/cdo/cdo-1.9.2-gccsys/bin/cdo
 
 #clean out the old grib data
