@@ -1,81 +1,63 @@
 #!/bin/bash
+. functions_download_gefs.sh
+
 #user settings
-GRIBDIR=/scratch/local1/m300382/gens/grib
-IMGDIR=/scratch/local1/m300382/gens/
-perl=/usr/bin/perl
+export GRIBDIR=/scratch/local1/m300382/gens/grib
+export IMGDIR=/scratch/local1/m300382/gens
+export perl=/usr/bin/perl
 python=/home/mpim/m300382/.conda/envs/my_env/bin/python
 cdo=/sw/jessie-x64/cdo/cdo-1.9.2-gccsys/bin/cdo
+export HOME_SCRIPTS=/home/mpim/m300382/gens
+
+# To skip duplicate timesteps
+export SKIP_SAME_TIME=1
 
 #clean out the old grib data
 rm $GRIBDIR/*
 
 #get current date and hour
-MONTH=$(date -u +"%m")
-DATE=$(date -u +"%d")
-YEAR=$(date -u +"%Y")
-HOUR=$(date -u +"%H")
+export MONTH=$(date -u +"%m")
+export DATE=$(date -u +"%d")
+export YEAR=$(date -u +"%Y")
+export HOUR=$(date -u +"%H")
 
 if [ $HOUR -ge 6 ] && [ $HOUR -lt 12 ]
 then
-    RUN=00
+    export RUN=00
 elif [ $HOUR -ge 12 ] && [ $HOUR -lt 18 ]
 then
-    RUN=06
+    export RUN=06
 elif [ $HOUR -ge 18 ]
 then
-    RUN=12
+    export RUN=12
 elif [ $HOUR -ge 00 ] && [ $HOUR -lt 6 ]
 then
     DATE=$(date -u -d'yesterday' +"%d")
-    RUN=18
+    export RUN=18
 else
     echo "Invalid hour!"
 fi
 
 #loop through forecast hours
-for i in {0..384..6}
-    do
-    #loop through each perturbation
-    for j in {1..20}
-        do
-            #make sure the forecast hour is 2+ digits
-            fcstHour=$(printf "%03d" $i)
-            #make sure the perturbation number is 2 digits
-            pert="0${j}"
-            pert="${pert: -2}"
-            #download the grib files
-            url="http://www.ftp.ncep.noaa.gov/data/nccf/com/gens/prod/gefs."$YEAR""$MONTH""$DATE"/"$RUN"/pgrb2ap5/gep"$pert".t"$RUN"z.pgrb2a.0p50.f"$fcstHour""
-            echo $url
-            if [ $i -eq 0 ]
-            then
-                echo "running get_inv.pl"
-            else
-                timeout 15 ${perl} /home/mpim/m300382/gens/get_inv.pl "${url}.idx" | grep -E ":(APCP|CSNOW|CRAIN|TMP:2 m above ground|TMP:850 mb|UGRD:500 mb|VGRD:500 mb|UGRD:10 m above ground|VGRD:10 m above ground|CAPE|CIN)" | \
-                timeout 15 ${perl} /home/mpim/m300382/gens/get_grib.pl "${url}" $GRIBDIR/grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_"$fcstHour"_"$pert"
-            fi
-        done
-        url_control="http://www.ftp.ncep.noaa.gov/data/nccf/com/gens/prod/gefs."$YEAR""$MONTH""$DATE"/"$RUN"/pgrb2ap5/gec00.t"$RUN"z.pgrb2a.0p50.f"$fcstHour""
-        echo $url_control
-            if [ $i -eq 0 ]
-            then
-                echo "running get_inv.pl"
-            else
-                timeout 15 ${perl} /home/mpim/m300382/gens/get_inv.pl "${url_control}.idx" | grep -E ":(APCP|CSNOW|CRAIN|TMP:2 m above ground|TMP:850 mb|UGRD:500 mb|VGRD:500 mb|UGRD:10 m above ground|VGRD:10 m above ground|CAPE|CIN)" | \
-                timeout 15 ${perl} /home/mpim/m300382/gens/get_grib.pl "${url_control}" $GRIBDIR/grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_"$fcstHour"_00
-            fi   
-    done
+hours_download=$(seq -s " " 6 6 384)
+
+export TASK_PYTHON_GEFS="download_gefs_member"
+${python} task_parallelism_general.py ${hours_download}
 
 ${cdo} -f nc copy -mergetime $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00" $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_00.nc"
 
-    for j in {1..20}
-        do
-            pert="0${j}"
-            pert="${pert: -2}"
-            ${cdo} -f nc copy -mergetime $GRIBDIR/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_*_"$pert"" $GRIBDIR/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_"$pert"".nc
-        done
+for j in {1..20}
+    do
+        pert="0${j}"
+        pert="${pert: -2}"
+        ${cdo} -f nc copy -mergetime $GRIBDIR/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_*_"$pert"" $GRIBDIR/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_"$pert"".nc
+    done
+
+# Remove all the non-netcdf files which are not necessary 
+rm ${GRIBDIR}/!(*.nc)
 
 #Do the scripts 
 export QT_QPA_PLATFORM=offscreen
 ${python} /home/mpim/m300382/gens/plot_meteogram.py 
 
-ncftpput -R -v altervista gens ${IMGDIR}meteogram_*
+ncftpput -R -v altervista gens ${IMGDIR}/meteogram_*
