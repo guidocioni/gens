@@ -23,6 +23,29 @@ def get_projection(projection="euroatlantic", countries=True, regions=False, lab
             m.drawmeridians(np.arange(0.0, 360.0, 10.), linewidth=0.2, color='white',
                 labels=[True, False, False, True], fontsize=7)
             
+    elif projection=="nh":
+        m = Basemap(projection="npstere", lon_0=20, lat_0=90, boundinglat=30,\
+               rsphere=6378160.0, ellps="WGS84",k_0=0.9330127018922193)
+        m.drawcoastlines(linewidth=0.5, linestyle='solid', color='black')
+        if countries:
+            m.drawcountries(linewidth=0.5, linestyle='solid', color='black')
+        if labels:
+            m.drawparallels(np.arange(-90.0, 90.0, 10.), linewidth=0.2, color='white',
+                labels=[True, False, False, True], fontsize=7)
+            m.drawmeridians(np.arange(0.0, 360.0, 10.), linewidth=0.2, color='white',
+                labels=[True, False, False, True], fontsize=7)
+            
+    elif projection=="world":
+        m = Basemap(projection='moll',lon_0=0,resolution='c')
+        m.drawcoastlines(linewidth=0.5, linestyle='solid', color='black')
+        if countries:
+            m.drawcountries(linewidth=0.5, linestyle='solid', color='black')
+        if labels:
+            m.drawparallels(np.arange(-90.0, 90.0, 25.), linewidth=0.2, color='white',
+                labels=[True, False, False, True], fontsize=7)
+            m.drawmeridians(np.arange(0.0, 360.0, 25.), linewidth=0.2, color='white',
+                labels=[True, False, False, True], fontsize=7) 
+            
     elif projection=="europe":
         m = Basemap(projection='cyl', llcrnrlon=-15, llcrnrlat=30, urcrnrlon=35, urcrnrlat=70,resolution='i')
         m.drawcoastlines(linewidth=0.5, linestyle='solid', color='black')
@@ -65,3 +88,10 @@ def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=256):
         'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
         cmap(np.linspace(minval, maxval, n)))
     return new_cmap
+
+def remove_contours(ax, cplot):
+    """ Remove filled or normal contours from an image, useful in loops."""
+    for coll in cplot.collections: 
+        ax.collections.remove(coll)
+        
+        

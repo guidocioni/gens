@@ -1,5 +1,5 @@
 #!/bin/bash
-. functions_download_gefs.sh
+. /home/mpim/m300382/gens/functions_download_gefs.sh
 
 #user settings
 export GRIBDIR=/scratch/local1/m300382/gens/grib
@@ -42,7 +42,7 @@ fi
 hours_download=$(seq -s " " 6 6 384)
 
 export TASK_PYTHON_GEFS="download_gefs_member"
-${python} task_parallelism_general.py ${hours_download}
+${python} /home/mpim/m300382/gens/task_parallelism_general.py ${hours_download}
 
 ${cdo} -f nc copy -mergetime $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00" $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_00.nc"
 
@@ -54,10 +54,22 @@ for j in {1..20}
     done
 
 # Remove all the non-netcdf files which are not necessary 
-rm ${GRIBDIR}/!(*.nc)
 
 #Do the scripts 
 export QT_QPA_PLATFORM=offscreen
-${python} /home/mpim/m300382/gens/plot_meteogram.py 
+source /sw/jessie-x64/anaconda2-4.1.1/bin/activate my_env
+
+${python} /home/mpim/m300382/gens/plot_meteogram.py
+${python} /home/mpim/m300382/gens/plot_gph_500.py
+${python} /home/mpim/m300382/gens/plot_t_850.py
+${python} /home/mpim/m300382/gens/plot_snow.py
 
 ncftpput -R -v altervista gens ${IMGDIR}/meteogram_*
+
+ncftpput -R -v altervista gens/nh/t_850 ${IMGDIR}/nh/t_850_*
+ncftpput -R -v altervista gens/nh/gph_500 ${IMGDIR}/nh/gph_500_*
+ncftpput -R -v altervista gens/nh/prob_snow ${IMGDIR}/nh/prob_snow_*
+
+ncftpput -R -v altervista gens/euratl/t_850 ${IMGDIR}/euratl/t_850_*
+ncftpput -R -v altervista gens/euratl/gph_500 ${IMGDIR}/euratl/gph_500_*
+ncftpput -R -v altervista gens/euratl/prob_snow ${IMGDIR}/euratl/prob_snow_*

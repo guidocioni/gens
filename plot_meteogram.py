@@ -49,11 +49,11 @@ for city in cities:
     ilat=np.argmin(abs(lat-loc.latitude))
     ilon=np.argmin(abs(lon-loc.longitude))
 
-    t_2m_point[city] = t_2m[:,:,ilat,ilon].dropna(dim='ens_member')
-    t_850hpa_point[city] = t_850hpa[:,:,ilat,ilon].dropna(dim='ens_member')
-    tot_prec_point[city] = tot_prec[:,:,ilat,ilon].dropna(dim='ens_member')
-    snow_point[city] = snow[:,:,ilat,ilon].dropna(dim='ens_member')
-    wind_speed_10m_point[city] = wind_speed_10m[:,:,ilat,ilon].dropna(dim='ens_member')
+    t_2m_point[city] = t_2m[:,:,ilat,ilon].interpolate_na(dim='time')
+    t_850hpa_point[city] = t_850hpa[:,:,ilat,ilon].interpolate_na(dim='time')
+    tot_prec_point[city] = tot_prec[:,:,ilat,ilon].interpolate_na(dim='time')
+    snow_point[city] = snow[:,:,ilat,ilon].interpolate_na(dim='time')
+    wind_speed_10m_point[city] = wind_speed_10m[:,:,ilat,ilon].interpolate_na(dim='time')
 
 nrows=4
 ncols=1
