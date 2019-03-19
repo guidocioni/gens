@@ -46,13 +46,15 @@ hours_download=$(seq -s " " 6 6 384)
 
 ${parallel} -j 8 download_gefs_member ::: $hours_download
 
-${cdo} -f nc copy -mergetime $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00" $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_00.nc"
+# We need sellonlatbox to shift the grid from 0,360 to -180, 180. Somehow it is
+# easier to do it now that afterwars in Python
+${cdo} -f nc copy -sellonlatbox,-180,180,-90,90 -mergetime $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00" $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_00.nc"
 
 for j in {1..20}
     do
         pert="0${j}"
         pert="${pert: -2}"
-        ${cdo} -f nc copy -mergetime $GRIBDIR/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_*_"$pert"" $GRIBDIR/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_"$pert"".nc
+        ${cdo} -f nc copy -sellonlatbox,-180,180,-90,90 -mergetime $GRIBDIR/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_*_"$pert"" $GRIBDIR/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_"$pert"".nc
     done
 
 # Remove all the non-netcdf files which are not necessary 

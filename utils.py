@@ -35,11 +35,9 @@ n_members_ensemble = 20
 
 def get_coordinates(dataset):
     """Get the lat/lon coordinates from the dataset and convert them to degrees."""
-    dataset['lon'].metpy.convert_units('degreeN')
-    dataset['lat'].metpy.convert_units('degreeE')
     # We have to return an array otherwise Basemap 
     # will complain
-    return(dataset['lon'].values-180., dataset['lat'].values)
+    return(dataset['lon'].values, dataset['lat'].values)
 
 def get_projection(lon, lat, projection="euratl", countries=True, labels=True):
     """Create the projection in Basemap and returns the x, y array to use it in a plot"""
