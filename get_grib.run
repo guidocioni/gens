@@ -45,7 +45,6 @@ fi
 hours_download=$(seq -s " " 6 6 384)
 
 ${parallel} -j 8 download_gefs_member ::: $hours_download
-exit
 
 ${cdo} -f nc copy -mergetime $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00" $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_00.nc"
 
@@ -62,10 +61,12 @@ for j in {1..20}
 export QT_QPA_PLATFORM=offscreen
 source /sw/jessie-x64/anaconda2-4.1.1/bin/activate my_base
 
+scripts=("plot_gph_500.py" "plot_t_850.py" "plot_snow.py")
+projections=("euratl" "nh")
+
+${parallel} -j 8 ${python} ::: "${scripts[@]}" ::: "${projections[@]}"
+
 ${python} /home/mpim/m300382/gens/plot_meteogram.py
-${python} /home/mpim/m300382/gens/plot_gph_500.py
-${python} /home/mpim/m300382/gens/plot_t_850.py
-${python} /home/mpim/m300382/gens/plot_snow.py
 
 ncftpput -R -v altervista gens ${IMGDIR}/meteogram_*
 

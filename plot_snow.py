@@ -1,85 +1,103 @@
-import matplotlib
-matplotlib.use('Agg')
+debug = False 
+if not debug:
+    import matplotlib
+    matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap # Import the Basemap toolkit
-import numpy as np # Import the Numpy package
-from datetime import datetime
-from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
-from glob import glob
-import xarray as xr
-import utils
+import xarray as xr 
+import metpy.calc as mpcalc
+from metpy.units import units
+import numpy as np
 import pandas as pd
+from multiprocessing import Pool
+from functools import partial
+import os 
+from utils import *
+import sys
+from matplotlib.colors import from_levels_and_colors
+import seaborn as sns
 
-diri='/scratch/local1/m300382/gens/grib/'
-diri_images='/scratch/local1/m300382/gens/'
+# The one employed for the figure name when exported 
+variable_name = 'prob_snow'
 
-fileslist=sorted(glob(diri+"*.nc"))
-datasets = [xr.open_dataset(files) for files in fileslist]
-# Merging should take care automatically of solving every conflict in the dimensions
-merged = xr.concat(datasets, 'ens_member')
+print('Starting script to plot '+variable_name)
 
-snow=merged['csnow']
-time = pd.to_datetime(merged['time'].values)
+# Get the projection as system argument from the call so that we can 
+# span multiple instances of this script outside
+if not sys.argv[1:]:
+    print('Projection not defined, falling back to default (euratl, nh)')
+    projections = ['euratl','nh']
+else:    
+    projections=sys.argv[1:]
 
-cum_hour=np.array((time-time[0]) / pd.Timedelta('1 hour')).astype("int")
+def main():
+    """In the main function we basically read the files and prepare the variables to be plotted.
+    This is not included in utils.py as it can change from case to case."""
+    dset = xr.open_mfdataset(input_files, concat_dim='ens_member').squeeze()
+    dset = dset.metpy.parse_cf()
 
-lon2d, lat2d = np.meshgrid(merged['lon'], merged['lat'])
+    prob_snow=dset['csnow'].load().mean(axis=0)*100.
+    prob_snow=np.ma.masked_less_equal(prob_snow, 5.)
 
-prob_snow=snow.mean(axis=0)*100.
-prob_snow=np.ma.masked_less_equal(prob_snow, 5)
+    lon, lat = get_coordinates(dset)
+    lon2d, lat2d = np.meshgrid(lon, lat)
 
-# Truncate colormap
-cmap = plt.get_cmap('gist_stern_r')
-new_cmap = utils.truncate_colormap(cmap, 0, 0.9)
+    time = pd.to_datetime(dset.time.values)
+    cum_hour=np.array((time-time[0]) / pd.Timedelta('1 hour')).astype("int")
 
-# Euro-Atlantic plots
-fig = plt.figure(figsize=(10,10))
-m = utils.get_projection(projection="euroatlantic", labels=True)
-m.shadedrelief(scale=0.4, alpha=0.8)
+    levels_snow = np.linspace(0,100,11)
 
-first = True 
-for i, date in enumerate(time):
-    cs = m.contourf(lon2d, lat2d, prob_snow[i,:,:], levels=np.linspace(0,100,11),
-                cmap=new_cmap, latlon=True)
-
-    plt.title('Snow probability (ensemble mean) | '+date.strftime('%d %b %Y at %H UTC'))
-    utils.annotation_run(plt.gca(), time)
-    utils.annotation(plt.gca(), text='GEFS', loc='upper left')
-    utils.annotation(plt.gca(), text='www.guidocioni.it', loc='lower right')
+    cmap, norm = get_colormap_norm("rain_acc", levels_snow)
     
-    if first: # Apparently it only needs to be added once...
-        plt.colorbar(cs, orientation='horizontal', label='Probability [%]',fraction=0.046, pad=0.04)
-    plt.savefig(diri_images+'euratl/prob_snow_%s.png' % cum_hour[i],
-                dpi=utils.dpi_resolution, bbox_inches='tight')
-        # This is needed to have contour which not overlap
-    for coll in cs.collections: 
-        plt.gca().collections.remove(coll)
-    first=False
+    for projection in projections:# This works regardless if projections is either single value or array
+        fig = plt.figure(figsize=(figsize_x, figsize_y))
+        ax  = plt.gca()        
+        m, x, y = get_projection(lon2d, lat2d, projection, labels=True)
+        img=m.shadedrelief(scale=0.4, alpha=0.8)
+        img.set_alpha(0.8)
 
-plt.close('all')
-       
-# Northern-Hemisphere plots
-fig = plt.figure(figsize=(10,10))
-m = utils.get_projection(projection="nh", labels=False)
-m.shadedrelief(scale=0.4, alpha=0.8)
+        # All the arguments that need to be passed to the plotting function
+        args=dict(m=m, x=x, y=y, ax=ax, cmap=cmap, norm=norm,
+                 prob_snow=prob_snow, levels_snow=levels_snow,
+                time=time, projection=projection, cum_hour=cum_hour)
+        
+        print('Pre-processing finished, launching plotting scripts')
+        if debug:
+            plot_files(time[1:2], **args)
+        else:
+            # Parallelize the plotting by dividing into chunks and processes 
+            dates = chunks(time, chunks_size)
+            plot_files_param=partial(plot_files, **args)
+            p = Pool(processes)
+            p.map(plot_files_param, dates)
 
-first = True 
-for i, date in enumerate(time):
-    cs = m.contourf(lon2d, lat2d, prob_snow[i,:,:], levels=np.linspace(0,100,11),
-                cmap=new_cmap, latlon=True)
+def plot_files(dates, **args):
+    # Using args we don't have to change the prototype function if we want to add other parameters!
+    first = True
+    for date in dates:
+        # Find index in the original array to subset when plotting
+        i = np.argmin(np.abs(date - args['time'])) 
+        # Build the name of the output image
+        filename = subfolder_images[args['projection']]+'/'+variable_name+'_%s.png' % args['cum_hour'][i]
 
-    plt.title('Snow probability (ensemble mean) | '+date.strftime('%d %b %Y at %H UTC'))
-    utils.annotation_run(plt.gca(), time)
-    utils.annotation(plt.gca(), text='GEFS', loc='upper left')
-    utils.annotation(plt.gca(), text='www.guidocioni.it', loc='lower right')
-    
-    if first: # Apparently it only needs to be added once...
-        plt.colorbar(cs, orientation='horizontal', label='Probability [%]',fraction=0.046, pad=0.04)
-    plt.savefig(diri_images+'nh/prob_snow_%s.png' % cum_hour[i],
-                dpi=utils.dpi_resolution, bbox_inches='tight')
-        # This is needed to have contour which not overlap
-    for coll in cs.collections: 
-        plt.gca().collections.remove(coll)
-    first=False
+        cs = args['ax'].contourf(args['x'], args['y'], args['prob_snow'][i], extend='both', cmap=args['cmap'],
+                                    norm=args['norm'], levels=args['levels_snow'])
+        
+        an_fc = annotation_forecast(args['ax'],args['time'][i])
+        an_var = annotation(args['ax'], 'Snow probability (ens. mean)' ,loc='lower left', fontsize=7)
+        an_run = annotation_run(args['ax'], args['time'])
 
-plt.close('all')
+        if first:
+            plt.colorbar(cs, orientation='horizontal', label='Probability [%]',fraction=0.046, pad=0.04)
+        
+        if debug:
+            plt.show(block=True)
+        else:
+            plt.savefig(filename, **options_savefig)        
+        
+        remove_collections([cs, an_fc, an_var, an_run])
+
+        first = False 
+
+if __name__ == "__main__":
+    main()

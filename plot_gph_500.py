@@ -1,104 +1,114 @@
-import matplotlib
-matplotlib.use('Agg')
+debug = False 
+if not debug:
+    import matplotlib
+    matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap # Import the Basemap toolkit
-import numpy as np # Import the Numpy package
-from datetime import datetime
-from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
-from glob import glob
-import xarray as xr
-import utils
+import xarray as xr 
+import metpy.calc as mpcalc
+from metpy.units import units
+import numpy as np
 import pandas as pd
+from multiprocessing import Pool
+from functools import partial
+import os 
+from utils import *
+import sys
+from matplotlib.colors import from_levels_and_colors
+import seaborn as sns
 
-diri='/scratch/local1/m300382/gens/grib/'
-diri_images='/scratch/local1/m300382/gens/'
+# The one employed for the figure name when exported 
+variable_name = 'gph_500'
 
-fileslist=sorted(glob(diri+"*.nc"))
-datasets = [xr.open_dataset(files) for files in fileslist]
-# Merging should take care automatically of solving every conflict in the dimensions
-merged = xr.concat(datasets, 'ens_member')
-gph_500=merged['gh'][:,:,0,:,:]
-time = pd.to_datetime(merged['time'].values)
+print('Starting script to plot '+variable_name)
 
-cum_hour=np.array((time-time[0]) / pd.Timedelta('1 hour')).astype("int")
+# Get the projection as system argument from the call so that we can 
+# span multiple instances of this script outside
+if not sys.argv[1:]:
+    print('Projection not defined, falling back to default (euratl, nh)')
+    projections = ['euratl','nh']
+else:    
+    projections=sys.argv[1:]
 
-lon2d, lat2d = np.meshgrid(merged['lon'], merged['lat'])
+def main():
+    """In the main function we basically read the files and prepare the variables to be plotted.
+    This is not included in utils.py as it can change from case to case."""
+    dset = xr.open_mfdataset(input_files, concat_dim='ens_member').squeeze()
+    dset = dset.metpy.parse_cf()
 
-# Compute arrays to plot just once
+    gph_500 = dset['gh'].load()
+    gph_500_std=gph_500.std(axis=0, skipna=True)
+    gph_500_mean=gph_500.mean(axis=0, skipna=True)
+    gph_500_std=np.ma.masked_less_equal(gph_500_std, 20)
 
-gph_500_std=gph_500.std(axis=0)
-gph_500_mean=gph_500.mean(axis=0)
-gph_500_std=np.ma.masked_less_equal(gph_500_std, 20)
+    lon, lat = get_coordinates(dset)
+    lon2d, lat2d = np.meshgrid(lon, lat)
 
-# Truncate colormap
-#cmap = plt.get_cmap('Greys')
-cmap = plt.get_cmap('gist_stern_r')
-new_cmap = utils.truncate_colormap(cmap, 0., 0.9)
+    time = pd.to_datetime(dset.time.values)
+    cum_hour=np.array((time-time[0]) / pd.Timedelta('1 hour')).astype("int")
 
-levels=(4600., 5000., 5200., 5400., 5600., 5700., 5800.)
-# levels_std=np.linspace(0, round(gph_500_std.max()), 16)
-levels_std=(0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 23,
-            26, 29, 32, 36, 40, 44, 48, 55, 60, 65, 
-            70, 75, 80, 100, 120, 150, 200)
+    levels_std = (0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 23,
+                    26, 29, 32, 36, 40, 44, 48, 55, 60, 65, 
+                    70, 75, 80, 100, 120, 150, 200)
 
+    levels_gph=(4600., 5000., 5200., 5400., 5600., 5700., 5800.)
 
-# Euro-Atlantic plots
-fig = plt.figure(figsize=(10,10))
-m = utils.get_projection(projection="euroatlantic", labels=True)
-m.shadedrelief(scale=0.4, alpha=0.8)
-
-first = True
-for i, date in enumerate(time):
-    c = m.contour(lon2d, lat2d, gph_500_mean[i,:,:], extend='both', levels=levels, latlon=True, colors='black')
-    cs = m.contourf(lon2d, lat2d, gph_500_std[i,:,:], extend='both', levels=levels_std,
-                    cmap=new_cmap, latlon=True)
+    cmap, norm = get_colormap_norm("rain_acc", levels_std)
     
-    labels=plt.gca().clabel(c, c.levels, inline=True, fmt='%d' , fontsize=10)
-    plt.title('GEFS forecast for %s' % date.strftime('%d %b %Y at %H UTC'))
-    utils.annotation_run(plt.gca(), time)
-    utils.annotation(plt.gca(), text='GEFS', loc='upper left')
-    utils.annotation(plt.gca(), text='www.guidocioni.it', loc='lower right')
-    
-    if first: # Apparently it only needs to be added once...
-        plt.colorbar(cs, orientation='horizontal', label='Standard deviation [gpm]', pad=0.05, fraction=0.05)
-    plt.savefig(diri_images+'euratl/gph_500_%s.png' % cum_hour[i],
-                dpi=utils.dpi_resolution, bbox_inches='tight')
-    # This is needed to have contour which not overlap
-    for coll in c.collections: 
-        plt.gca().collections.remove(coll)
-    for coll in cs.collections: 
-        plt.gca().collections.remove(coll)
-    for label in labels:
-        label.remove()
-    first=False
-       
-# Northern-Hemisphere plots
-fig = plt.figure(figsize=(10,10))
-m = utils.get_projection(projection="nh", labels=False)
-m.shadedrelief(scale=0.3, alpha=0.8)
+    for projection in projections:# This works regardless if projections is either single value or array
+        fig = plt.figure(figsize=(figsize_x, figsize_y))
+        ax  = plt.gca()        
+        m, x, y = get_projection(lon2d, lat2d, projection, labels=True)
+        img=m.shadedrelief(scale=0.4, alpha=0.8)
+        img.set_alpha(0.8)
 
-first = True
-for i, date in enumerate(time):
-    c = m.contour(lon2d, lat2d, gph_500_mean[i,:,:], extend='both', levels=levels, latlon=True, colors='black')
-    cs = m.contourf(lon2d, lat2d, gph_500_std[i,:,:], extend='both', levels=levels_std,
-                    cmap=new_cmap, latlon=True)
-    
-    labels=plt.gca().clabel(c, c.levels, inline=True, fmt='%d' , fontsize=10)
-    plt.title('GEFS forecast for %s' % date.strftime('%d %b %Y at %H UTC'))
-    utils.annotation_run(plt.gca(), time)
-    utils.annotation(plt.gca(), text='GEFS', loc='upper left')
-    utils.annotation(plt.gca(), text='www.guidocioni.it', loc='lower right')
-    
-    if first: # Apparently it only needs to be added once...
-        plt.colorbar(cs, orientation='horizontal', label='Standard deviation [gpm]', pad=0.05, fraction=0.05)
-    plt.savefig(diri_images+'nh/gph_500_%s.png' % cum_hour[i],
-                dpi=utils.dpi_resolution, bbox_inches='tight')
-    # This is needed to have contour which not overlap
-    for coll in c.collections: 
-        plt.gca().collections.remove(coll)
-    for coll in cs.collections: 
-        plt.gca().collections.remove(coll)
-    for label in labels:
-        label.remove()
-    first=False
+        # All the arguments that need to be passed to the plotting function
+        args=dict(m=m, x=x, y=y, ax=ax, cmap=cmap, norm=norm,
+                 gph_500_std=gph_500_std, levels_std=levels_std, gph_500_mean=gph_500_mean,
+                 levels_gph=levels_gph, time=time, projection=projection, cum_hour=cum_hour)
+        
+        print('Pre-processing finished, launching plotting scripts')
+        if debug:
+            plot_files(time[-2:-1], **args)
+        else:
+            # Parallelize the plotting by dividing into chunks and processes 
+            dates = chunks(time, chunks_size)
+            plot_files_param=partial(plot_files, **args)
+            p = Pool(processes)
+            p.map(plot_files_param, dates)
 
+def plot_files(dates, **args):
+    # Using args we don't have to change the prototype function if we want to add other parameters!
+    first = True
+    for date in dates:
+        # Find index in the original array to subset when plotting
+        i = np.argmin(np.abs(date - args['time'])) 
+        # Build the name of the output image
+        filename = subfolder_images[args['projection']]+'/'+variable_name+'_%s.png' % args['cum_hour'][i]
+
+        cs = args['ax'].contourf(args['x'], args['y'], args['gph_500_std'][i], extend='both', cmap=args['cmap'],
+                                    norm=args['norm'], levels=args['levels_std'])
+        
+        c = args['ax'].contour(args['x'], args['y'], args['gph_500_mean'][i], levels=args['levels_gph'],
+                             colors='black', linewidths=1.)
+
+        labels = args['ax'].clabel(c, c.levels, inline=True, fmt='%4.0f' , fontsize=6)
+
+        an_fc = annotation_forecast(args['ax'],args['time'][i])
+        an_var = annotation(args['ax'], 'Geopotential at 500 hPa (mean and std.)' ,loc='lower left', fontsize=7)
+        an_run = annotation_run(args['ax'], args['time'])
+
+        if first:
+            plt.colorbar(cs, orientation='horizontal', label='Standard deviation ',fraction=0.046, pad=0.04)
+        
+        if debug:
+            plt.show(block=True)
+        else:
+            plt.savefig(filename, **options_savefig)        
+        
+        remove_collections([cs, c, labels, an_fc, an_var, an_run])
+
+        first = False 
+
+if __name__ == "__main__":
+    main()
