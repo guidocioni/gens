@@ -1,23 +1,18 @@
-from netCDF4 import Dataset
-import netCDF4
 import matplotlib.pyplot as plt
 import numpy as np # Import the Numpy package
-import matplotlib.gridspec as gridspec
 from glob import glob
 from geopy.geocoders import Nominatim
 import seaborn as sns
 import pandas as pd
 import matplotlib.dates as mdates
-from matplotlib.dates import  DateFormatter
+from matplotlib.dates import DateFormatter
 import xarray as xr
 
 plt.switch_backend('agg')
 
 diri='/scratch/local1/m300382/gens/grib/'
 diri_images='/scratch/local1/m300382/gens/'
-cities = ["Milano","Roma","Palermo","Hamburg","Pisa","Storrs"]
-
-n_pert=[]
+cities = ["Milano","Roma","Palermo","Hamburg","Pisa","Storrs", "Utrecht","Tromso"]
 
 fileslist=sorted(glob(diri+"*.nc"))
 datasets = [xr.open_dataset(files) for files in fileslist]

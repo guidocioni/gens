@@ -57,7 +57,7 @@ if ($file eq '') {
   exit 8;
 }
 
-open (In, "$curl --retry 2 -f -s $file |");
+open (In, "$curl -k -f -s $file |");
 
 $last=0;
 $lastnum = -1;
@@ -80,7 +80,6 @@ while (<In>) {
         sleep(3);
         exit 7;
      }
-
      if ($lastnum != $num && $last != 0) {
         $n = $num - 1;
         for ($i = 0; $i < $last; $i++) {
@@ -93,8 +92,8 @@ while (<In>) {
      else {
         $old_lines[$last++] = $_;
 	$lastnum = $num;
-     }
-  }
+  }     }
+
 }
 
 if ($has_range == 1) { exit 0; }

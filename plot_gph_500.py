@@ -31,11 +31,16 @@ gph_500_mean=gph_500.mean(axis=0)
 gph_500_std=np.ma.masked_less_equal(gph_500_std, 20)
 
 # Truncate colormap
-cmap = plt.get_cmap('Greys')
-new_cmap = utils.truncate_colormap(cmap, 0.1, 0.9)
+#cmap = plt.get_cmap('Greys')
+cmap = plt.get_cmap('gist_stern_r')
+new_cmap = utils.truncate_colormap(cmap, 0., 0.9)
 
 levels=(4600., 5000., 5200., 5400., 5600., 5700., 5800.)
-levels_std=np.linspace(0, round(gph_500_std.max()), 16)
+# levels_std=np.linspace(0, round(gph_500_std.max()), 16)
+levels_std=(0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 23,
+            26, 29, 32, 36, 40, 44, 48, 55, 60, 65, 
+            70, 75, 80, 100, 120, 150, 200)
+
 
 # Euro-Atlantic plots
 fig = plt.figure(figsize=(10,10))
@@ -44,7 +49,7 @@ m.shadedrelief(scale=0.4, alpha=0.8)
 
 first = True
 for i, date in enumerate(time):
-    c = m.contour(lon2d, lat2d, gph_500_mean[i,:,:], extend='both', levels=levels, latlon=True, cmap='plasma')
+    c = m.contour(lon2d, lat2d, gph_500_mean[i,:,:], extend='both', levels=levels, latlon=True, colors='black')
     cs = m.contourf(lon2d, lat2d, gph_500_std[i,:,:], extend='both', levels=levels_std,
                     cmap=new_cmap, latlon=True)
     
@@ -74,7 +79,7 @@ m.shadedrelief(scale=0.3, alpha=0.8)
 
 first = True
 for i, date in enumerate(time):
-    c = m.contour(lon2d, lat2d, gph_500_mean[i,:,:], extend='both', levels=levels, latlon=True, cmap='plasma')
+    c = m.contour(lon2d, lat2d, gph_500_mean[i,:,:], extend='both', levels=levels, latlon=True, colors='black')
     cs = m.contourf(lon2d, lat2d, gph_500_std[i,:,:], extend='both', levels=levels_std,
                     cmap=new_cmap, latlon=True)
     

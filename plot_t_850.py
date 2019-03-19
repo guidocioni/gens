@@ -31,11 +31,12 @@ t_850_mean=t_850hpa.mean(axis=0)
 t_850_std=np.ma.masked_less_equal(t_850_std, 1)
 
 # Truncate colormap
-cmap = plt.get_cmap('Greys')
-new_cmap = utils.truncate_colormap(cmap, 0.1, 0.9)
+cmap = plt.get_cmap('gist_stern_r')
+new_cmap = utils.truncate_colormap(cmap, 0., 0.9)
 
 levels=(-15, -10, -5, 0, 5, 10)
-levels_std=np.linspace(0, round(t_850hpa.std(axis=0).max()), 16)
+# levels_std=np.linspace(0, round(t_850hpa.std(axis=0).max()), 16)
+levels_std=(0, 0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 9, 10, 15)
 
 # Euro-Atlantic plots
 fig = plt.figure(figsize=(10,10))
@@ -44,7 +45,8 @@ m.shadedrelief(scale=0.4, alpha=0.8)
 
 first = True
 for i, date in enumerate(time):
-    c = m.contour(lon2d, lat2d, t_850_mean[i,:,:], extend='both', levels=levels, latlon=True)
+    c = m.contour(lon2d, lat2d, t_850_mean[i,:,:], extend='both', levels=levels, latlon=True, 
+        colors='black', linestyles='solid')
     cs = m.contourf(lon2d, lat2d,t_850_std[i,:,:], extend='both', levels=levels_std,
                     cmap=new_cmap, latlon=True)
     
@@ -74,7 +76,8 @@ m.shadedrelief(scale=0.3, alpha=0.8)
 
 first = True
 for i, date in enumerate(time):
-    c = m.contour(lon2d, lat2d, t_850_mean[i,:,:], extend='both', levels=levels, latlon=True)
+    c = m.contour(lon2d, lat2d, t_850_mean[i,:,:], extend='both', levels=levels, latlon=True,
+                  colors='black', linestyles='solid')
     cs = m.contourf(lon2d, lat2d,t_850_std[i,:,:], extend='both', levels=levels_std,
                     cmap=new_cmap, latlon=True)
     

@@ -1,13 +1,16 @@
 #!/bin/bash
 . /home/mpim/m300382/gens/functions_download_gefs.sh
+export SHELL=$(type -p bash)
+########################################### 
 
 #user settings
 export GRIBDIR=/scratch/local1/m300382/gens/grib
 export IMGDIR=/scratch/local1/m300382/gens
 export perl=/usr/bin/perl
-python=/home/mpim/m300382/.conda/envs/my_env/bin/python
+python=/home/mpim/m300382/.conda/envs/my_base/bin/python
 cdo=/sw/jessie-x64/cdo/cdo-1.9.2-gccsys/bin/cdo
 export HOME_SCRIPTS=/home/mpim/m300382/gens
+export parallel=/client/bin/parallel
 
 # To skip duplicate timesteps
 export SKIP_SAME_TIME=1
@@ -41,8 +44,8 @@ fi
 #loop through forecast hours
 hours_download=$(seq -s " " 6 6 384)
 
-export TASK_PYTHON_GEFS="download_gefs_member"
-${python} /home/mpim/m300382/gens/task_parallelism_general.py ${hours_download}
+${parallel} -j 8 download_gefs_member ::: $hours_download
+exit
 
 ${cdo} -f nc copy -mergetime $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00" $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_00.nc"
 
@@ -57,7 +60,7 @@ for j in {1..20}
 
 #Do the scripts 
 export QT_QPA_PLATFORM=offscreen
-source /sw/jessie-x64/anaconda2-4.1.1/bin/activate my_env
+source /sw/jessie-x64/anaconda2-4.1.1/bin/activate my_base
 
 ${python} /home/mpim/m300382/gens/plot_meteogram.py
 ${python} /home/mpim/m300382/gens/plot_gph_500.py
