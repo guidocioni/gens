@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-$curl="/usr/bin/curl";
+$curl="/home/mpim/m300382/.conda/envs/my_base/bin/curl";
 
 # get_inv.pl            wesley ebisuzaki
 # v0.9  1/2005

@@ -1,4 +1,4 @@
-debug = False 
+debug = False
 if not debug:
     import matplotlib
     matplotlib.use('Agg')

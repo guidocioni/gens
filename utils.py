@@ -34,10 +34,19 @@ subfolder_images={
 n_members_ensemble = 20
 
 def get_coordinates(dataset):
-    """Get the lat/lon coordinates from the dataset and convert them to degrees."""
+    """Get the lat/lon coordinates from the dataset and convert them to degrees.
+    TODO. Implement a check for coordinates to make sure that they are defined
+    between -180 and 180, and not 0 to 360."""
     # We have to return an array otherwise Basemap 
     # will complain
     return(dataset['lon'].values, dataset['lat'].values)
+
+def get_city_coordinates(city):
+    """Get the lat/lon coordinates of a city given its name using geopy."""
+    from geopy.geocoders import Nominatim
+    geolocator =Nominatim(user_agent='meteogram')
+    loc = geolocator.geocode(city)
+    return(loc.longitude, loc.latitude)
 
 def get_projection(lon, lat, projection="euratl", countries=True, labels=True):
     """Create the projection in Basemap and returns the x, y array to use it in a plot"""
@@ -72,7 +81,7 @@ def chunks(l, n):
 
 # Annotation run, models 
 def annotation_run(ax, time, loc='upper right'):
-    at = AnchoredText('Run %s'% str(time[0]-np.timedelta64(6,'h'))[:13], 
+    at = AnchoredText('Run %s'% (time[0]-np.timedelta64(6,'h')).strftime('%Y%m%d %H UTC'), 
                       prop=dict(size=8), frameon=True, loc=loc)
     at.patch.set_boxstyle("round,pad=0.,rounding_size=0.1")
     ax.add_artist(at)
@@ -144,5 +153,3 @@ def remove_collections(elements):
                 element.remove() 
         except ValueError:
             print('WARNING: Collection is empty')
-        
-        
