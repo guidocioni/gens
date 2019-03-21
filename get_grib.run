@@ -66,7 +66,7 @@ for j in {1..20}
 cd /home/mpim/m300382/gens/
 export QT_QPA_PLATFORM=offscreen
 
-scripts=("plot_gph_500.py" "plot_t_850.py" "plot_snow.py")
+scripts=("plot_gph_500.py" "plot_t_850.py" "plot_prec.py")
 projections=("euratl" "nh")
 
 ${parallel} -j 8 ${python} ::: "${scripts[@]}" ::: "${projections[@]}"
