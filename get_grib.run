@@ -7,12 +7,13 @@ export SHELL=$(type -p bash)
 export GRIBDIR=/scratch/local1/m300382/gens/grib
 export IMGDIR=/scratch/local1/m300382/gens
 export perl=/home/mpim/m300382/.conda/envs/my_base/bin/perl
-python=/home/mpim/m300382/.conda/envs/my_base/bin/python
-cdo=/sw/jessie-x64/cdo/cdo-1.9.2-gccsys/bin/cdo
+export python=/home/mpim/m300382/.conda/envs/my_base/bin/python
+export cdo=/sw/stretch-x64/cdo/cdo-1.9.6-gccsys/bin/cdo
 export HOME_SCRIPTS=/home/mpim/m300382/gens
 export parallel=/home/mpim/m300382/.conda/envs/my_base/bin/parallel
 
-source /sw/jessie-x64/anaconda2-4.1.1/bin/activate my_base
+export QT_QPA_PLATFORM=offscreen # Needed to avoid errors when using Python without display
+source /sw/stretch-x64/conda/anaconda3-5.3.0-python-3.7/bin/activate my_base
 
 # To skip duplicate timesteps
 export SKIP_SAME_TIME=1
@@ -64,14 +65,13 @@ for j in {1..20}
 
 #Do the scripts 
 cd /home/mpim/m300382/gens/
-export QT_QPA_PLATFORM=offscreen
 
 scripts=("plot_gph_500.py" "plot_t_850.py" "plot_prec.py")
 projections=("euratl" "nh")
 
 ${parallel} -j 8 ${python} ::: "${scripts[@]}" ::: "${projections[@]}"
 
-${python} plot_meteogram.py Milano Roma Palermo Hamburg Pisa Storrs Utrecht Tromso
+${python} plot_meteogram.py Milano Roma Palermo Hamburg Pisa Storrs Utrecht Tromso Toulouse
 
 ncftpput -R -v altervista gens ${IMGDIR}/meteogram_*
 

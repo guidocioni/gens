@@ -47,7 +47,7 @@ def main():
     time = pd.to_datetime(dset.time.values)
     cum_hour=np.array((time-time[0]) / pd.Timedelta('1 hour')).astype("int")
 
-    levels = np.linspace(0,100,11)
+    levels = np.linspace(30,100,8)
 
     cmap_snow, norm_snow = get_colormap_norm("snow", levels)
     cmap_rain, norm_rain = get_colormap_norm("rain", levels)
@@ -85,9 +85,9 @@ def plot_files(dates, **args):
         filename = subfolder_images[args['projection']]+'/'+variable_name+'_%s.png' % args['cum_hour'][i]
 
         cs_rain = args['ax'].contourf(args['x'], args['y'], args['prob_rain'][i], extend='max', cmap=args['cmap_rain'],
-                                    norm=args['norm_rain'], levels=args['levels'], alpha=0.7)
+                                    norm=args['norm_rain'], levels=args['levels'], alpha=0.8)
         cs_snow = args['ax'].contourf(args['x'], args['y'], args['prob_snow'][i], extend='max', cmap=args['cmap_snow'],
-                                    norm=args['norm_snow'], levels=args['levels'], alpha=0.7)
+                                    norm=args['norm_snow'], levels=args['levels'], alpha=0.8)
 
         an_fc = annotation_forecast(args['ax'],args['time'][i])
         an_var = annotation(args['ax'], 'Snow probability (ens. mean)' ,loc='lower left', fontsize=7)
