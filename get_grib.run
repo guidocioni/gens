@@ -71,7 +71,7 @@ projections=("euratl" "nh")
 
 ${parallel} -j 8 ${python} ::: "${scripts[@]}" ::: "${projections[@]}"
 
-${python} plot_meteogram.py Milano Roma Palermo Hamburg Pisa Storrs Utrecht Tromso Toulouse
+${python} plot_meteogram.py Milano Roma Palermo Hamburg Pisa Storrs Utrecht Tromso Toulouse Sassari Cagliari Munich 
 
 ncftpput -R -v altervista gens ${IMGDIR}/meteogram_*
 
