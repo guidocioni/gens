@@ -10,8 +10,8 @@ from matplotlib.colors import from_levels_and_colors
 import seaborn as sns
 
 # Output folder for images
-folder = '/scratch/local1/m300382/gens/grib/'
-folder_images = "/scratch/local1/m300382/gens/"
+folder = '/tmp/gens/'
+folder_images = folder
 input_files=folder+'grib_gefs_*.nc' 
 chunks_size = 10 
 processes = 5

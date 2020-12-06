@@ -33,7 +33,7 @@ else:
 def main():
     """In the main function we basically read the files and prepare the variables to be plotted.
     This is not included in utils.py as it can change from case to case."""
-    dset = xr.open_mfdataset(input_files, concat_dim='ens_member').squeeze()
+    dset = xr.open_mfdataset(input_files, concat_dim='ens_member', combine='nested').squeeze()
     dset = dset.metpy.parse_cf()
 
     t_850 = dset['t'].load() - 273.15

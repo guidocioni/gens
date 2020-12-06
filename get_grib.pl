@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-$curl="/home/mpim/m300382/.conda/envs/my_base/bin/curl";
+# $curl="/home/mpim/m300382/.conda/envs/my_base/bin/curl";
 
 # get_grib.pl            wesley ebisuzaki
 # v0.9  1/2005
@@ -103,7 +103,7 @@ if ($lastfrom ne '') {
 
 unlink $file;
 if ($range ne "") {
-   $err=system("$curl -y 30 -Y 30 -k -f -v -s -r \"$range\" $url -o $file.tmp");
+   $err=system("curl -y 30 -Y 30 -k -f -v -s -r \"$range\" $url -o $file.tmp");
    $err = $err >> 8;
    if ($err != 0) {
       print STDERR "error in getting file $err\n";

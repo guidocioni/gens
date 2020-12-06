@@ -25,7 +25,7 @@ if not sys.argv[1:]:
 else:    
     cities=sys.argv[1:]
 
-dset = xr.open_mfdataset(input_files, concat_dim='ens_member').squeeze()
+dset = xr.open_mfdataset(input_files, concat_dim='ens_member', combine='nested').squeeze()
 dset = dset.metpy.parse_cf()
 time = pd.to_datetime(dset['time'].values)
 # Array needed for the box plot
@@ -60,6 +60,7 @@ for city in cities:
         box.set(facecolor='LightBlue')
 
     ax1.plot(pos, dset_city['2t'].mean(axis=0), 'r-', linewidth=1)
+    ax1.set_xlim(pos[0], pos[-1])
     ax1.set_ylabel("2m Temp. [C]",fontsize=8)
     ax1.yaxis.grid(True)
     ax1.xaxis.grid(True, color='gray', linewidth=0.2)
@@ -72,9 +73,10 @@ for city in cities:
     for box in bplot_rain['boxes']:
         box.set(color='LightBlue')
         box.set(facecolor='LightBlue')
-        
+
     ax2.plot(pos, dset_city['tp'].mean(axis=0), 'r-', linewidth=1)
     ax2.set_ylim(bottom=0)
+    ax2.set_xlim(pos[0], pos[-1])
     ax2b = ax2.twinx()
     ax2b.plot(pos, dset_city['csnow'].mean(axis=0)*100., '*',color='purple')
     ax2b.set_ylabel("Snow probability",fontsize=8)
@@ -94,6 +96,7 @@ for city in cities:
     ax3.plot(pos, np.mean(wind_speed, axis=0), 'r-', linewidth=1)
 
     ax3.yaxis.grid(True)
+    ax3.set_xlim(pos[0], pos[-1])
     ax3.set_ylabel("Wind speed [km/h]",fontsize=8)
     ax3.tick_params(axis='y', which='major', labelsize=8)
     ax3.set_ylim(bottom=0)

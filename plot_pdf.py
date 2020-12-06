@@ -12,7 +12,7 @@ from utils import *
 import sys
 import matplotlib.gridspec as gridspec
 
-dset = xr.open_mfdataset(input_files, concat_dim='ens_member').squeeze()
+dset = xr.open_mfdataset(input_files, concat_dim='ens_member', combine='nested').squeeze()
 dset = dset.metpy.parse_cf()
 time = pd.to_datetime(dset['time'].values)
 # Array needed for the box plot

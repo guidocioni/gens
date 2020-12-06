@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-$curl="/home/mpim/m300382/.conda/envs/my_base/bin/curl";
+# $curl="/home/mpim/m300382/.conda/envs/my_base/bin/curl";
 
 # get_inv.pl            wesley ebisuzaki
 # v0.9  1/2005
@@ -57,7 +57,7 @@ if ($file eq '') {
   exit 8;
 }
 
-open (In, "$curl -k -f -s $file |");
+open (In, "curl -k -f -s $file |");
 
 $last=0;
 $lastnum = -1;
