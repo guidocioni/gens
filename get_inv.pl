@@ -57,7 +57,7 @@ if ($file eq '') {
   exit 8;
 }
 
-open (In, "curl -k -f -s $file |");
+open (In, "curl --silent --show-error --fail -k -f -s $file |");
 
 $last=0;
 $lastnum = -1;

@@ -8,6 +8,11 @@ from metpy.units import units
 import pandas as pd
 from matplotlib.colors import from_levels_and_colors
 import seaborn as sns
+import requests
+import json
+import os
+
+apiKey = os.environ['MAPBOX_KEY']
 
 # Output folder for images
 folder = '/tmp/gens/'
@@ -41,12 +46,20 @@ def get_coordinates(dataset):
     # will complain
     return(dataset['lon'].values, dataset['lat'].values)
 
+
 def get_city_coordinates(city):
-    """Get the lat/lon coordinates of a city given its name using geopy."""
-    from geopy.geocoders import Nominatim
-    geolocator =Nominatim(user_agent='meteogram')
-    loc = geolocator.geocode(city)
-    return(loc.longitude, loc.latitude)
+    apiURL_places = "https://api.mapbox.com/geocoding/v5/mapbox.places"
+
+    url = "%s/%s.json?&access_token=%s" % (apiURL_places, city, apiKey)
+
+    response = requests.get(url)
+    json_data = json.loads(response.text)
+
+    # place_name = json_data['features'][0]['place_name']
+    lon, lat = json_data['features'][0]['center']
+
+    return lon, lat
+
 
 def get_projection(lon, lat, projection="euratl", countries=True, labels=True):
     """Create the projection in Basemap and returns the x, y array to use it in a plot"""

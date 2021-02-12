@@ -8,10 +8,10 @@ echo "gens: Starting processing of GEFS model data - `date`"
 export GRIBDIR=/tmp/gens/
 export IMGDIR=/tmp/gens/
 export HOME_SCRIPTS=$(pwd)
-export NCFTP_BOOKMARK="altervista"
+export NCFTP_BOOKMARK="mid"
 DATA_DOWNLOAD=true
-DATA_PLOTTING=false
-DATA_UPLOAD=false
+DATA_PLOTTING=true
+DATA_UPLOAD=true
 
 #
 . ./functions_download_gefs.sh
@@ -38,13 +38,17 @@ then
 elif [ $HOUR -ge 18 ]
 then
     export RUN=12
-elif [ $HOUR -ge 00 ] && [ $HOUR -lt 6 ]
+elif [ $HOUR -ge 0 ] && [ $HOUR -lt 6 ]
 then
     DATE=$(date -u -d'yesterday' +"%d")
     export RUN=18
 else
     echo "Invalid hour!"
 fi
+
+echo "----------------------------------------------------------------------------------------------"
+echo "gens: run ${YEAR}${MONTH}${DATE}${RUN}"
+echo "----------------------------------------------------------------------------------------------"
 
 # Move to the data folder to do processing
 cd ${GRIBDIR} || { echo 'Cannot change to DATA folder' ; exit 1; }
@@ -61,23 +65,32 @@ if [ "$DATA_DOWNLOAD" = true ]; then
     hours_download=$(seq -s " " 6 6 384)
     export SKIP_SAME_TIME=1
     #clean out the old grib data
-    rm $GRIBDIR/*
+    rm ${GRIBDIR}/grib_gefs*
 
-    parallel -j 10 download_gefs_member ::: $hours_download
+    parallel -j 20 download_gefs_member ::: $hours_download
+
+    rm *.tmp
 
     # We need sellonlatbox to shift the grid from 0,360 to -180, 180. Somehow it is
     # easier to do it now that afterwars in Python
-    cdo -f nc copy -sellonlatbox,-180,180,-90,90 -mergetime $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00" $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_00.nc"
+    cdo -f nc copy -sellonlatbox,-180,180,-90,90 -mergetime \
+                    $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00" \
+                    $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_00.nc"
 
-    for j in {1..20}
+    rm $GRIBDIR/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00"
+
+    for j in {1..30}
         do
             pert="0${j}"
             pert="${pert: -2}"
-            cdo -f nc copy -sellonlatbox,-180,180,-90,90 -mergetime $GRIBDIR/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_*_"$pert"" $GRIBDIR/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_"$pert"".nc
+            cdo -f nc copy -sellonlatbox,-180,180,-90,90 -mergetime \
+                            $GRIBDIR/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_*_"$pert"" \
+                            $GRIBDIR/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_"$pert"".nc
+            rm $GRIBDIR/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_*_"$pert""
         done
 
     # Remove all the non-netcdf files which are not necessary 
-    rm $GRIBDIR/*[!.nc]
+    #rm $GRIBDIR/*[!.nc]
 fi
 
 # SECTION 2 - DATA PLOTTING ############################################################
@@ -90,12 +103,13 @@ if [ "$DATA_PLOTTING" = true ]; then
     cp ${HOME_SCRIPTS}/*.py ${GRIBDIR}
     export QT_QPA_PLATFORM=offscreen 
 
+    python plot_meteogram.py Milano Roma Palermo Hamburg Pisa Storrs Utrecht Tromso Toulouse Sassari Cagliari Munich 
+
     scripts=("plot_gph_500.py" "plot_t_850.py" "plot_prec.py")
     projections=("euratl" "nh")
 
     parallel -j 8 python ::: "${scripts[@]}" ::: "${projections[@]}"
 
-    python plot_meteogram.py Milano Roma Palermo Hamburg Pisa Storrs Utrecht Tromso Toulouse Sassari Cagliari Munich 
 fi
 
 
@@ -106,15 +120,15 @@ if [ "$DATA_UPLOAD" = true ]; then
     echo "gens: Starting FTP uploading - `date`"
     echo "-----------------------------------------------"
 
-    ncftpput -R -v altervista gens ${IMGDIR}/meteogram_*
+    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens ${IMGDIR}/meteogram_*
 
-    ncftpput -R -v -DD altervista gens/nh/t_850 ${IMGDIR}/nh/t_850_*
-    ncftpput -R -v -DD altervista gens/nh/gph_500 ${IMGDIR}/nh/gph_500_*
-    ncftpput -R -v -DD altervista gens/nh/prob_snow ${IMGDIR}/nh/prob_snow_*
+    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/nh/t_850 ${IMGDIR}/nh/t_850_*
+    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/nh/gph_500 ${IMGDIR}/nh/gph_500_*
+    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/nh/prob_snow ${IMGDIR}/nh/prob_snow_*
 
-    ncftpput -R -v -DD altervista gens/euratl/t_850 ${IMGDIR}/euratl/t_850_*
-    ncftpput -R -v -DD altervista gens/euratl/gph_500 ${IMGDIR}/euratl/gph_500_*
-    ncftpput -R -v -DD altervista gens/euratl/prob_snow ${IMGDIR}/euratl/prob_snow_*
+    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/euratl/t_850 ${IMGDIR}/euratl/t_850_*
+    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/euratl/gph_500 ${IMGDIR}/euratl/gph_500_*
+    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/euratl/prob_snow ${IMGDIR}/euratl/prob_snow_*
 fi
 
 # SECTION 4 - CLEANING ############################################################
