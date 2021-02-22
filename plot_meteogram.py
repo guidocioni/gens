@@ -1,8 +1,5 @@
-debug = False 
-if not debug:
-    import matplotlib
-    matplotlib.use('Agg')
-
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 from glob import glob
@@ -14,6 +11,9 @@ import xarray as xr
 import metpy.calc as mpcalc
 from utils import *
 import sys
+from tqdm.contrib.concurrent import process_map
+import time
+
 
 print('Starting script to plot meteograms')
 
@@ -23,22 +23,54 @@ if not sys.argv[1:]:
     print('City not defined, falling back to default (Hamburg)')
     cities = ['Hamburg']
 else:    
-    cities=sys.argv[1:]
+    cities = sys.argv[1:]
 
-dset = xr.open_mfdataset(input_files, concat_dim='ens_member', combine='nested').squeeze()
-dset = dset.metpy.parse_cf()
-time = pd.to_datetime(dset['time'].values)
-# Array needed for the box plot
-pos = np.array((time-time[0]) / pd.Timedelta('1 hour')).astype("int")
 
-nrows=4
-ncols=1
-sns.set(style="white")
+def main():
+    dset = xr.open_mfdataset(input_files,
+                             concat_dim='ens_member',
+                             combine='nested').squeeze()
+    dset = dset.metpy.parse_cf().load()
 
-for city in cities:
+
+    dset['abs_time'] = (dset.time.dt.dayofyear.astype(str).astype(object) +\
+                    np.char.zfill(dset.time.dt.hour.astype(str), 2).astype(object)).astype(int)
+
+    # read climatology
+    clima = xr.open_dataset('/home/ekman/guido/climatologies/clima_1981-2010_CSFR_t_850.nc').squeeze().sel(time='2010')
+
+    clima['abs_time'] = (clima.time.dt.dayofyear.astype(str).astype(object) +\
+                        np.char.zfill(clima.time.dt.hour.astype(str), 2).astype(object)).astype(int)
+    clima = clima.assign_coords({'time': clima['abs_time']})
+    clima = clima.sel(time=dset['abs_time'] , method='nearest')
+
+
+    it = []
+    for city in cities:
+        lon, lat = get_city_coordinates(city)
+        d = dset.sel(lon=lon, lat=lat, method='nearest').interpolate_na(dim='time').copy()
+        c = clima.sel(lon=lon, lat=lat, method='nearest').copy()
+        d.attrs['city'] = city
+        d['t_clim'] = xr.DataArray(c['t'].values,
+                              dims=d['t'].dims[1:],
+                              attrs=d['t'].attrs)
+        it.append(d)
+        del d
+
+    process_map(plot, it, max_workers=processes, chunksize=2)
+
+
+def plot(dset_city):
+    city = dset_city.attrs['city']
+    nrows = 4
+    ncols = 1
+    sns.set(style="white")
+
+    time = pd.to_datetime(dset_city['time'].values)
+    # Array needed for the box plot
+    pos = np.array((time - time[0]) / pd.Timedelta('1 hour')).astype("int")
+
     print('Producing meteogram for %s' % city)
-    lon, lat = get_city_coordinates(city)
-    dset_city =  dset.sel(lon=lon, lat=lat, method='nearest').interpolate_na(dim='time')
     # Recover units which somehow are deleted by interpolate_na,
     # no idea why....
     dset_city['2t'].attrs['units'] = 'K'
@@ -47,12 +79,13 @@ for city in cities:
     dset_city['10v'].attrs['units'] = 'm/s'
     dset_city['2t'].metpy.convert_units('degC')
     dset_city['t'].metpy.convert_units('degC')
-    wind_speed = mpcalc.wind_speed(dset_city['10u'],dset_city['10v']).to('kph')
+    dset_city['t_clim'].metpy.convert_units('degC')
+    wind_speed = mpcalc.wind_speed(dset_city['10u'], dset_city['10v']).to('kph')
 
     fig = plt.figure(1, figsize=(9,10))
-    ax1=plt.subplot2grid((nrows,ncols), (0,0))
+    ax1 = plt.subplot2grid((nrows,ncols), (0,0))
     ax1.set_title("GEFS meteogram for "+city+" | Run "+(time[0]-np.timedelta64(6,'h')).strftime('%Y%m%d %H UTC'))
-    
+
     bplot=ax1.boxplot(dset_city['2t'].values, patch_artist=True,
                       showfliers=False, positions=pos, widths=3)
     for box in bplot['boxes']:
@@ -102,8 +135,9 @@ for city in cities:
     ax3.set_ylim(bottom=0)
     ax3.xaxis.grid(True, color='gray', linewidth=0.2)
 
-    ax4=plt.subplot2grid((nrows,ncols), (3,0))
+    ax4 = plt.subplot2grid((nrows,ncols), (3,0))
     ax4.plot(time, dset_city['t'].values.T, '-',linewidth=0.8)
+    ax4.plot(time, dset_city['t_clim'].values, '-', linewidth=2, color='gray')
     ax4.set_xlim(time[0],time[-1])
     ax4.set_ylabel("850 hPa Temp. [C]",fontsize=8)
     ax4.tick_params(axis='y', which='major', labelsize=8)
@@ -118,8 +152,12 @@ for city in cities:
     fig.subplots_adjust(hspace=0.1)
     fig.autofmt_xdate()
 
-    if debug:
-        plt.show(block=True)
-    else:
-        plt.savefig(folder_images+"meteogram_"+city, dpi=100, bbox_inches='tight')   
+    plt.savefig(folder_images+"meteogram_"+city, dpi=100, bbox_inches='tight')   
     plt.clf()
+
+
+if __name__ == "__main__":
+    start_time=time.time()
+    main()
+    elapsed_time=time.time()-start_time
+    print("script took " + time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
