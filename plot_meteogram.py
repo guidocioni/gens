@@ -42,7 +42,13 @@ def main():
     clima['abs_time'] = (clima.time.dt.dayofyear.astype(str).astype(object) +\
                         np.char.zfill(clima.time.dt.hour.astype(str), 2).astype(object)).astype(int)
     clima = clima.assign_coords({'time': clima['abs_time']})
-    clima = clima.sel(time=dset['abs_time'] , method='nearest')
+    clima = clima.sel(time=dset['abs_time'], method='nearest')
+    #
+    clima_t2 = xr.open_dataset('/home/ekman/guido/climatologies/clima_1981-2010_CSFR_t_2m.nc').squeeze().sel(time='2010')
+    clima_t2['abs_time'] = (clima_t2.time.dt.dayofyear.astype(str).astype(object) +\
+                        np.char.zfill(clima_t2.time.dt.hour.astype(str), 2).astype(object)).astype(int)
+    clima_t2 = clima_t2.assign_coords({'time': clima_t2['abs_time']})
+    clima_t2 = clima_t2.sel(time=dset['abs_time'], method='nearest')
 
 
     it = []
@@ -50,10 +56,14 @@ def main():
         lon, lat = get_city_coordinates(city)
         d = dset.sel(lon=lon, lat=lat, method='nearest').interpolate_na(dim='time').copy()
         c = clima.sel(lon=lon, lat=lat, method='nearest').copy()
+        c2 = clima_t2.sel(lon=lon, lat=lat, method='nearest').copy()
         d.attrs['city'] = city
         d['t_clim'] = xr.DataArray(c['t'].values,
                               dims=d['t'].dims[1:],
                               attrs=d['t'].attrs)
+        d['2t_clim'] = xr.DataArray(c2['2t'].values,
+                      dims=d['t'].dims[1:],
+                      attrs=d['t'].attrs)
         it.append(d)
         del d
 
@@ -80,6 +90,7 @@ def plot(dset_city):
     dset_city['2t'].metpy.convert_units('degC')
     dset_city['t'].metpy.convert_units('degC')
     dset_city['t_clim'].metpy.convert_units('degC')
+    dset_city['2t_clim'].metpy.convert_units('degC')
     wind_speed = mpcalc.wind_speed(dset_city['10u'], dset_city['10v']).to('kph')
 
     fig = plt.figure(1, figsize=(9,10))
@@ -93,6 +104,7 @@ def plot(dset_city):
         box.set(facecolor='LightBlue')
 
     ax1.plot(pos, dset_city['2t'].mean(axis=0), 'r-', linewidth=1)
+    ax1.plot(pos, dset_city['2t_clim'], '-', color='gray', linewidth=3, alpha=0.5)
     ax1.set_xlim(pos[0], pos[-1])
     ax1.set_ylabel("2m Temp. [C]",fontsize=8)
     ax1.yaxis.grid(True)
