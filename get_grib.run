@@ -67,30 +67,33 @@ if [ "$DATA_DOWNLOAD" = true ]; then
     #clean out the old grib data
     rm ${MODEL_DATA_FOLDER}/grib_gefs*
 
-    parallel -j 20 download_gefs_member ::: $hours_download
+    parallel -j 15 download_gefs_member ::: $hours_download
 
     rm *.tmp
+    # Delete empty files
+    FILENAMES=$MODEL_DATA_FOLDER"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*"
+    find $FILENAMES -empty -type f -delete
 
     # We need sellonlatbox to shift the grid from 0,360 to -180, 180. Somehow it is
     # easier to do it now that afterwars in Python
     cdo -f nc copy -sellonlatbox,-180,180,-90,90 -mergetime \
-                    $MODEL_DATA_FOLDER/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00" \
-                    $MODEL_DATA_FOLDER/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_00.nc"
+                    $MODEL_DATA_FOLDER"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00" \
+                    $MODEL_DATA_FOLDER"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_00.nc"
 
-    rm $MODEL_DATA_FOLDER/"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00"
+    rm $MODEL_DATA_FOLDER"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00"
 
     for j in {1..30}
         do
             pert="0${j}"
             pert="${pert: -2}"
             cdo -f nc copy -sellonlatbox,-180,180,-90,90 -mergetime \
-                            $MODEL_DATA_FOLDER/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_*_"$pert"" \
-                            $MODEL_DATA_FOLDER/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_"$pert"".nc
-            rm $MODEL_DATA_FOLDER/"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_*_"$pert""
+                            $MODEL_DATA_FOLDER"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_*_"$pert"" \
+                            $MODEL_DATA_FOLDER"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_"$pert"".nc
+            rm $MODEL_DATA_FOLDER"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_*_"$pert""
         done
 
     # Remove all the non-netcdf files which are not necessary 
-    #rm $MODEL_DATA_FOLDER/*[!.nc]
+    rm $MODEL_DATA_FOLDER/grib_gefs*[!.nc]
 fi
 
 # SECTION 2 - DATA PLOTTING ############################################################

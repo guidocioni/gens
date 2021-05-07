@@ -9,18 +9,18 @@ download_gefs_member()
         pert="${pert: -2}"
 
         # Download the grib files
-        url="https://www.ftp.ncep.noaa.gov/data/nccf/com/gens/prod/gefs."$YEAR""$MONTH""$DATE"/"$RUN"/atmos/pgrb2ap5/gep"$pert".t"$RUN"z.pgrb2a.0p50.f"$fcstHour""
+        url="https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs."$YEAR""$MONTH""$DATE"/"$RUN"/atmos/pgrb2ap5/gep"$pert".t"$RUN"z.pgrb2a.0p50.f"$fcstHour""
         echo $url
-        timeout 40 perl $HOME_FOLDER/get_inv.pl "${url}.idx" | \
+        timeout 30 perl $HOME_FOLDER/get_inv.pl "${url}.idx" | \
                 grep -E ":(APCP|CSNOW|CRAIN|TMP:2 m above ground|TMP:850 mb|HGT:500 mb|UGRD:10 m above ground|VGRD:10 m above ground|CAPE)" | \
-                timeout 40 perl $HOME_FOLDER/get_grib.pl "${url}" $MODEL_DATA_FOLDER/grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_"$fcstHour"_"$pert"
+                timeout 30 perl $HOME_FOLDER/get_grib.pl "${url}" $MODEL_DATA_FOLDER/grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_"$fcstHour"_"$pert"
     done
 
 # Now download the control run
-url_control="https://www.ftp.ncep.noaa.gov/data/nccf/com/gens/prod/gefs."$YEAR""$MONTH""$DATE"/"$RUN"/atmos/pgrb2ap5/gec00.t"$RUN"z.pgrb2a.0p50.f"$fcstHour""
+url_control="https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs."$YEAR""$MONTH""$DATE"/"$RUN"/atmos/pgrb2ap5/gec00.t"$RUN"z.pgrb2a.0p50.f"$fcstHour""
 echo $url_control
-timeout 40 perl $HOME_FOLDER/get_inv.pl "${url_control}.idx" | \
+timeout 30 perl $HOME_FOLDER/get_inv.pl "${url_control}.idx" | \
         grep -E ":(APCP|CSNOW|CRAIN|TMP:2 m above ground|TMP:850 mb|HGT:500 mb|UGRD:10 m above ground|VGRD:10 m above ground|CAPE)" | \
-        timeout 40 perl $HOME_FOLDER/get_grib.pl "${url_control}" $MODEL_DATA_FOLDER/grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_"$fcstHour"_00
+        timeout 30 perl $HOME_FOLDER/get_grib.pl "${url_control}" $MODEL_DATA_FOLDER/grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_"$fcstHour"_00
 }
 export -f download_gefs_member
