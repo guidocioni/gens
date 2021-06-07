@@ -63,37 +63,23 @@ if [ "$DATA_DOWNLOAD" = true ]; then
 
     #loop through forecast hours
     hours_download=$(seq -s " " 6 6 384)
+    members_download=$(seq -s " " 0 1 30)
     export SKIP_SAME_TIME=1
     #clean out the old grib data
     rm ${MODEL_DATA_FOLDER}/grib_gefs*
 
-    parallel -j 15 download_gefs_member ::: $hours_download
+    parallel -j 25 --delay 1 download_gefs_member ::: $hours_download ::: $members_download
 
-    rm *.tmp
     # Delete empty files
     FILENAMES=$MODEL_DATA_FOLDER"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*"
     find $FILENAMES -empty -type f -delete
 
-    # We need sellonlatbox to shift the grid from 0,360 to -180, 180. Somehow it is
-    # easier to do it now that afterwars in Python
-    cdo -f nc copy -sellonlatbox,-180,180,-90,90 -mergetime \
-                    $MODEL_DATA_FOLDER"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00" \
-                    $MODEL_DATA_FOLDER"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_00.nc"
-
-    rm $MODEL_DATA_FOLDER"grib_gefs_"$YEAR$MONTH$DATE"_"$RUN"_*_00"
-
-    for j in {1..30}
-        do
-            pert="0${j}"
-            pert="${pert: -2}"
-            cdo -f nc copy -sellonlatbox,-180,180,-90,90 -mergetime \
-                            $MODEL_DATA_FOLDER"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_*_"$pert"" \
-                            $MODEL_DATA_FOLDER"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_"$pert"".nc
-            rm $MODEL_DATA_FOLDER"grib_gefs_"$YEAR""$MONTH""$DATE"_"$RUN"_*_"$pert""
-        done
+    # merging files 
+    parallel -j 5 merge_gefs_member ::: $members_download
 
     # Remove all the non-netcdf files which are not necessary 
     rm $MODEL_DATA_FOLDER/grib_gefs*[!.nc]
+    exit
 fi
 
 # SECTION 2 - DATA PLOTTING ############################################################
@@ -135,11 +121,6 @@ if [ "$DATA_UPLOAD" = true ]; then
 fi
 
 # SECTION 4 - CLEANING ############################################################
-
-#Remove images locally
-rm ${IMGDIR}nh/*.png
-rm ${IMGDIR}euratl/*.png
-rm ${IMGDIR}*.py
 
 echo "-----------------------------------------------"
 echo "gens: Finished cleaning up - `date`"

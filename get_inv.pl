@@ -57,7 +57,7 @@ if ($file eq '') {
   exit 8;
 }
 
-open (In, "curl --silent --show-error --fail -k -f -s $file |");
+open (In, "curl --silent --show-error --fail --retry 5 --retry-connrefused --retry-delay 2 --max-time 60 $file |");
 
 $last=0;
 $lastnum = -1;

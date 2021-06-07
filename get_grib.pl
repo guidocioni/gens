@@ -103,7 +103,7 @@ if ($lastfrom ne '') {
 
 unlink $file;
 if ($range ne "") {
-   $err=system("curl --silent --show-error --fail -k -f -v -s -r \"$range\" $url -o $file.tmp");
+   $err=system("curl --silent --show-error --fail --retry 5 --retry-connrefused --retry-delay 2 --max-time 60 -r \"$range\" $url -o $file.tmp");
    $err = $err >> 8;
    if ($err != 0) {
       print STDERR "error in getting file $err\n";
