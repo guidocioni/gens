@@ -79,7 +79,6 @@ if [ "$DATA_DOWNLOAD" = true ]; then
 
     # Remove all the non-netcdf files which are not necessary 
     rm $MODEL_DATA_FOLDER/grib_gefs*[!.nc]
-    exit
 fi
 
 # SECTION 2 - DATA PLOTTING ############################################################
