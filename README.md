@@ -9,8 +9,7 @@ Subsequently some plotting routines written in Python are called. For the moment
 
 In the following some description of the files:
 
-* `get_grib.pl` : `Perl` script needed to retrieve the file. 
-* `get_inv.pl` : `Perl` script needed to retrieve the inventory of the files.
+* `downloader.py` : `python` script needed to retrieve the files of the run
 * `plot_gefs.ipynb` : Jupyter notebook that shows how to process and plot the data. 
 * `plot_meteogram.py` : Script to plot meteograms. Include functionality to retrieve lat/lon coordinates using `nominatim`. 
 * `plot_spaghetti.py` : Script to plot spaghetti.

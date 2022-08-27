@@ -24,7 +24,7 @@ else:
 if 'MODEL_DATA_FOLDER' in os.environ:
     folder = os.environ['MODEL_DATA_FOLDER']
 else:
-    folder = '/tmp/gens/'
+    folder = '/home/ekman/ssd/guido/gens/'
 
 folder_images = folder
 input_files=folder+'grib_gefs_*.nc' 
