@@ -64,8 +64,8 @@ def main():
         d['2t_clim'] = xr.DataArray(c2['2t'].values,
                                     dims=d['t'].dims[1:],
                                     attrs=d['t'].attrs)
+        d = d.compute()
         it.append(d)
-        del d
 
     process_map(plot, it, max_workers=processes, chunksize=2)
 

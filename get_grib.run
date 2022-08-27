@@ -1,4 +1,5 @@
 #!/bin/bash
+conda activate models
 
 # Cd into our working directory in case we're not into it already
 cd "$(dirname "$0")";
@@ -121,7 +122,7 @@ if [ "$DATA_PLOTTING" = true ]; then
     python --version
     export QT_QPA_PLATFORM=offscreen 
 
-    python plot_meteogram.py Milano Roma Palermo Hamburg Pisa Storrs Utrecht Tromso Toulouse Sassari Cagliari Munich Napoli 
+    python plot_meteogram.py Milano Roma Palermo Hamburg Pisa Storrs Utrecht Toulouse Sassari Cagliari Munich Napoli 
 
     scripts=("plot_gph_500.py" "plot_t_850.py" "plot_prec.py")
     projections=("euratl" "nh")
