@@ -1,5 +1,4 @@
 #!/bin/bash
-conda activate models
 
 # Cd into our working directory in case we're not into it already
 cd "$(dirname "$0")";
@@ -127,7 +126,7 @@ if [ "$DATA_PLOTTING" = true ]; then
     scripts=("plot_gph_500.py" "plot_t_850.py" "plot_prec.py")
     projections=("euratl" "nh")
 
-    parallel -j 8 python ::: "${scripts[@]}" ::: "${projections[@]}"
+    parallel -j 2 python ::: "${scripts[@]}" ::: "${projections[@]}"
 fi
 
 
@@ -140,13 +139,15 @@ if [ "$DATA_UPLOAD" = true ]; then
 
     ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens ${IMGDIR}/meteogram_*
 
-    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/nh/t_850 ${IMGDIR}/nh/t_850_*
-    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/nh/gph_500 ${IMGDIR}/nh/gph_500_*
-    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/nh/prob_snow ${IMGDIR}/nh/prob_snow_*
+    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/nh/t_850 ${IMGDIR}/nh/t_850_* &
+    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/nh/gph_500 ${IMGDIR}/nh/gph_500_* &
+    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/nh/prob_snow ${IMGDIR}/nh/prob_snow_* &
+    wait
 
-    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/euratl/t_850 ${IMGDIR}/euratl/t_850_*
-    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/euratl/gph_500 ${IMGDIR}/euratl/gph_500_*
-    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/euratl/prob_snow ${IMGDIR}/euratl/prob_snow_*
+    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/euratl/t_850 ${IMGDIR}/euratl/t_850_* &
+    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/euratl/gph_500 ${IMGDIR}/euratl/gph_500_* &
+    ncftpput -R -v -DD -m ${NCFTP_BOOKMARK} gens/euratl/prob_snow ${IMGDIR}/euratl/prob_snow_* &
+    wait
 fi
 
 # SECTION 4 - CLEANING ############################################################

@@ -29,7 +29,7 @@ else:
 folder_images = folder
 input_files=folder+'grib_gefs_*.nc' 
 chunks_size = 10 
-processes = 5
+processes = 4
 figsize_x = 10 
 figsize_y = 8
 

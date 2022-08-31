@@ -50,7 +50,7 @@ def main():
     # Create iterator for download
     it = [{'fcst': i, 'pert': j} for i in args.fcst for j in args.pert]
     # Launch downloading
-    files = process_map(download, it, chunksize=10, max_workers=6)
+    files = process_map(download, it, chunksize=10, max_workers=4)
 
     return files
 
