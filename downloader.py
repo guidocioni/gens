@@ -50,7 +50,7 @@ def main():
     # Create iterator for download
     it = [{'fcst': i, 'pert': j} for i in args.fcst for j in args.pert]
     # Launch downloading
-    files = process_map(download, it, chunksize=10, max_workers=3)
+    files = process_map(download, it, chunksize=10, max_workers=4)
 
     return files
 
@@ -86,7 +86,7 @@ def download(it):
     # Create the request
     headers = {"Range": byte_selection}
     # Wait again before launching the next request
-    time.sleep(0.5)
+    # time.sleep(0.5)
     r = requests.get(url, headers=headers)
     # Check if we get some data, as the NOMADS servers are shit
     max_retry = 5

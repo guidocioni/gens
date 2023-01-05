@@ -11,6 +11,7 @@ import seaborn as sns
 import requests
 import json
 import os
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 apiKey = os.environ['MAPBOX_KEY']
 apiURL_places = "https://api.mapbox.com/geocoding/v5/mapbox.places"
@@ -194,3 +195,27 @@ def remove_collections(elements):
                 element.remove() 
         except ValueError:
             print('WARNING: Collection is empty')
+
+
+def divide_axis_for_cbar(ax, width="45%", height="2%", pad=-3, adjust=0.05):
+    '''Using inset_axes, divides axis in two to place the colorbars side to side.
+    Note that we use the bbox explicitlly with padding to adjust the position of the colorbars
+    otherwise they'll come out of the axis (don't really know why)'''
+    ax_cbar = inset_axes(ax,
+                         width=width,
+                         height=height,
+                         loc='lower left',
+                         borderpad=pad,
+                         bbox_to_anchor=(adjust, 0., 1, 1),
+                         bbox_transform=ax.transAxes
+                         )
+    ax_cbar_2 = inset_axes(ax,
+                           width=width,
+                           height=height,
+                           loc='lower right',
+                           borderpad=pad,
+                           bbox_to_anchor=(-adjust, 0., 1, 1),
+                           bbox_transform=ax.transAxes
+                           )
+
+    return ax_cbar, ax_cbar_2

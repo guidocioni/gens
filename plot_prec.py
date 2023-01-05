@@ -100,19 +100,11 @@ def plot_files(dates, **args):
         an_run = annotation_run(args['ax'], args['time'])
 
         if first:
-            x_cbar_0, y_cbar_0, x_cbar_size, y_cbar_size = 0.15, 0.05, 0.3, 0.02
-            x_cbar2_0, y_cbar2_0, x_cbar2_size, y_cbar2_size = 0.55, 0.05, 0.3, 0.02
-
-            ax_cbar = plt.gcf().add_axes(
-                [x_cbar_0, y_cbar_0, x_cbar_size, y_cbar_size])
-            ax_cbar_2 = plt.gcf().add_axes(
-                [x_cbar2_0, y_cbar2_0, x_cbar2_size, y_cbar2_size])
+            ax_cbar, ax_cbar_2 = divide_axis_for_cbar(args['ax'])
             cbar_snow = plt.gcf().colorbar(cs_snow, cax=ax_cbar, orientation='horizontal',
                                            label='Snow')
             cbar_rain = plt.gcf().colorbar(cs_rain, cax=ax_cbar_2, orientation='horizontal',
                                            label='Rain')
-            cbar_snow.ax.tick_params(labelsize=8)
-            cbar_rain.ax.tick_params(labelsize=8)
 
         if debug:
             plt.show(block=True)
